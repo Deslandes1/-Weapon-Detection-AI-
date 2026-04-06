@@ -4,8 +4,9 @@ import numpy as np
 from ultralytics import YOLO
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 import av
+import os
+import requests
 import base64
-import time
 
 st.set_page_config(page_title="Weapon Detection AI - GlobalInternet.py", layout="wide")
 
@@ -13,14 +14,10 @@ st.set_page_config(page_title="Weapon Detection AI - GlobalInternet.py", layout=
 # Authentication
 # ----------------------------------------------------------------------
 def check_password():
-    def password_entered():
-        if st.session_state["password"] == st.secrets["password"]:
-            st.session_state["authenticated"] = True
-            del st.session_state["password"]
-        else:
-            st.session_state["authenticated"] = False
-
     if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if not st.session_state.authenticated:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col1:
             st.image("https://flagcdn.com/w320/ht.png", width=100)
@@ -38,72 +35,61 @@ def check_password():
         st.divider()
         pwd = st.text_input("🔐 Enter password to unlock", type="password")
         if pwd == "20082010":
-            st.session_state["authenticated"] = True
+            st.session_state.authenticated = True
             st.rerun()
         elif pwd:
             st.error("Wrong password. Access denied.")
         return False
-    else:
-        return True
+    return True
 
 # ----------------------------------------------------------------------
-# Load YOLO model (cached)
+# Load YOLO model (weapon detection)
 # ----------------------------------------------------------------------
 @st.cache_resource
-def load_model():
-    # Download a small YOLOv8n model (nano) - ~6MB
-    model = YOLO("yolov8n.pt")  # pretrained on COCO
-    return model
+def load_weapon_model():
+    # Try to download a weapon detection model from a public URL
+    model_path = "weapon_model.pt"
+    if not os.path.exists(model_path):
+        # Attempt to download from a reliable source (this is a placeholder, replace with actual URL)
+        # For this example, we use a standard YOLOv8 model and filter for knives (demo)
+        st.warning("Weapon model not found. Using fallback: detecting knives and scissors as potential weapons.")
+        # Fallback: use standard YOLOv8 and filter for knife (class 43) and scissors (class 76)
+        model = YOLO("yolov8n.pt")
+        return model, True
+    else:
+        model = YOLO(model_path)
+        return model, False
 
-model = load_model()
-# COCO class IDs for weapons: pistol (0?), actually we need to check:
-# common gun classes in COCO: 0: person, 1: bicycle, 2: car, ... 24: backpack, 25: umbrella, 26: handbag, 27: tie, 28: suitcase, 29: frisbee, 30: skis, 31: snowboard, 32: sports ball, 33: kite, 34: baseball bat, 35: baseball glove, 36: skateboard, 37: surfboard, 38: tennis racket, 39: bottle, 40: wine glass, 41: cup, 42: fork, 43: knife, 44: spoon, 45: bowl, 46: banana, 47: apple, 48: sandwich, 49: orange, 50: broccoli, 51: carrot, 52: hot dog, 53: pizza, 54: donut, 55: cake, 56: chair, 57: couch, 58: potted plant, 59: bed, 60: dining table, 61: toilet, 62: tv, 63: laptop, 64: mouse, 65: remote, 66: keyboard, 67: cell phone, 68: microwave, 69: oven, 70: toaster, 71: sink, 72: refrigerator, 73: book, 74: clock, 75: vase, 76: scissors, 77: teddy bear, 78: hair drier, 79: toothbrush.
-# There is no explicit 'gun' class. We need a custom model or use a specialized one.
-# For demonstration, we'll use a custom trained model or a pre-trained gun detection model.
-# Since we cannot train here, we'll simulate with a placeholder: if any person is detected, we'll assume a weapon if a knife or something? Not good.
-# Better: Use a dedicated gun detection model from Ultralytics hub.
-# We'll use a publicly available model: "gun-detection" from Roboflow or Ultralytics.
-# For simplicity and to make the app functional, we'll use a pre-trained YOLOv8 model that detects handguns (I'll provide a link to a small model).
-# Actually, I'll use a pre-trained model from my repository – but that may not exist. Instead, I'll use a common trick: detect 'knife' and 'scissors' as potential weapons, but that's not realistic.
+model, is_fallback = load_weapon_model()
 
-# Given the complexity, I'll create a simulated weapon detection for demonstration (detects any object as a "weapon" placeholder) – but that's not acceptable.
-# Instead, I'll use a real weapon detection model from Ultralytics YOLOv8 trained on weapons. I'll include a download link to a small model file.
-
-# Let's use a publicly available weapon detection model (I know a few). I'll provide a direct URL to a .pt file from a trusted source? Not possible.
-# Alternative: Use a custom script that detects "knife" and "scissors" and "baseball bat" as potential weapons. Not ideal but works as demo.
-
-# For this exercise, I'll assume the user has a weapon detection model. I'll include code that loads a model named "weapon_model.pt" and explain how to get it.
-
-# To make the app fully functional, we will download a small weapon detection model from a public URL (if available). I found a model from Ultralytics: "yolov8n-weapon.pt" from a third party? Not safe.
-# So I'll provide instructions for the user to download a model themselves.
-
-# For the purpose of this response, I'll write the complete code with a placeholder that uses a generic YOLO model but filters for "gun" if available. Since it's not, I'll use a simulated detection for demonstration.
-
-# Given the constraints, I'll create a demo that works with a webcam and draws boxes on any person (to simulate detection) – but that's not weapon detection. I'll instead use a small pretrained model that I know exists: "gun_detector.pt" from a GitHub repo. I'll include a download function.
-
-# Let's implement a real solution: download a small weapon detection model from a reliable CDN (I'll host a placeholder? Not possible). I'll provide code that uses the standard YOLOv8 and then applies a heuristic: if a person is detected and there is an object in their hand area? Too complex.
-
-# I'll instead create a fully functional app using a pre-trained weapon detection model from Ultralytics. Since I cannot host a file, I'll provide instructions for the user to download the model from a trusted source (like Ultralytics official models). The app will work once the model is placed.
-
-# I'll write the code with a model path "weapon_model.pt" and explain how to obtain it.
-
-# For the final answer, I'll provide the code and instructions for the user to download a weapon detection model. This ensures the app works.
-
-# Let's proceed with the final answer.
+# COCO class names for fallback mode
+coco_names = [
+    "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
+    "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog",
+    "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
+    "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite",
+    "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle",
+    "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich",
+    "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch",
+    "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote",
+    "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
+    "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
+]
+weapon_keywords = ["knife", "scissors", "baseball bat", "hammer", "axe", "gun", "pistol", "rifle", "weapon"]
 
 # ----------------------------------------------------------------------
 # Video transformer for real-time detection
 # ----------------------------------------------------------------------
 class WeaponDetector(VideoTransformerBase):
     def __init__(self):
-        self.model = load_model()  # load the weapon detection model
-        self.weapon_classes = [0]  # placeholder, actual class IDs will be set based on model
+        self.model = model
+        self.is_fallback = is_fallback
 
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
         # Run detection
         results = self.model(img)
-        # Process results
+        weapon_detected = False
         for result in results:
             boxes = result.boxes
             if boxes is not None:
@@ -111,11 +97,23 @@ class WeaponDetector(VideoTransformerBase):
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
                     conf = float(box.conf[0])
                     cls = int(box.cls[0])
-                    # Check if it's a weapon (class ID 0 = gun in our custom model)
-                    if conf > 0.5:
-                        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                        label = f"Weapon {conf:.2f}"
-                        cv2.putText(img, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
+                    if self.is_fallback:
+                        # In fallback mode, check if the detected class is a potential weapon
+                        class_name = coco_names[cls] if cls < len(coco_names) else "unknown"
+                        if any(keyword in class_name.lower() for keyword in weapon_keywords):
+                            weapon_detected = True
+                            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                            label = f"{class_name} {conf:.2f}"
+                            cv2.putText(img, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
+                    else:
+                        # Custom weapon model – assume class 0 is weapon
+                        if conf > 0.5:
+                            weapon_detected = True
+                            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                            label = f"Weapon {conf:.2f}"
+                            cv2.putText(img, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
+        if weapon_detected:
+            cv2.putText(img, "⚠️ WEAPON DETECTED ⚠️", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 # ----------------------------------------------------------------------
@@ -150,11 +148,12 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 💰 Price")
 st.sidebar.markdown("**$299 USD** – One‑time purchase (lifetime license)")
 st.sidebar.markdown("---")
-st.sidebar.info("How it works:\n- Click 'Start Camera' below.\n- Point your camera at a potential weapon.\n- The AI will draw a red box around the weapon.\n- A text alert will appear.\n- Works on phones and computers.")
+st.sidebar.info("How it works:\n- Click 'Start' below.\n- Grant camera permission.\n- The AI will highlight any weapon detected.\n- A red warning appears on screen.\n- Works on phones and computers.")
+
+if is_fallback:
+    st.warning("⚠️ Demo mode: Using standard model (detects knives, scissors, bats as potential weapons). For full accuracy, please provide a custom weapon detection model.")
 
 st.markdown("### 📷 Live Camera Feed")
-st.markdown("Make sure you grant camera permission when prompted.")
-
 webrtc_ctx = webrtc_streamer(
     key="weapon-detection",
     video_transformer_factory=WeaponDetector,
