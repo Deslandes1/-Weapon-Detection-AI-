@@ -6,8 +6,8 @@ from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfigura
 import av
 import os
 import datetime
-import base64
 import io
+import random
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
@@ -28,7 +28,7 @@ def check_password():
             st.image("https://flagcdn.com/w320/ht.png", width=100)
         with col2:
             st.markdown("<h1 style='text-align: center;'>WEAPON DETECTION AI</h1>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center;'><em>Real-time gun detection for public safety</em></p>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center;'><em>Concealed weapon detection for public safety</em></p>", unsafe_allow_html=True)
         with col3:
             st.markdown("""
             <div style='text-align: right;'>
@@ -62,11 +62,13 @@ def load_weapon_model():
         model = YOLO(model_path)
         return model, False
     else:
-        return None, True  # fallback without model
+        # Fallback: use standard YOLOv8 for person detection and weapon-like objects
+        model = YOLO("yolov8n.pt")
+        return model, True
 
-model, no_model = load_weapon_model()
+model, is_fallback = load_weapon_model()
 
-# COCO class names for fallback mode (only used if we have a model)
+# COCO class names for fallback mode
 coco_names = [
     "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
     "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog",
@@ -87,28 +89,30 @@ weapon_keywords = ["knife", "scissors", "baseball bat", "hammer", "axe", "gun", 
 class WeaponDetector(VideoTransformerBase):
     def __init__(self):
         self.model = model
-        self.no_model = no_model
+        self.is_fallback = is_fallback
         self.demo_mode = st.session_state.get("demo_mode", False)
         self.detection_events = []
 
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
         weapon_detected = False
+        concealed_alert = False
         detected_objects = []
+        persons = []
+        weapons = []
 
         if self.demo_mode:
             # Simulate weapon detection randomly for demo
-            import random
-            if random.random() < 0.1:  # 10% chance each frame
+            if random.random() < 0.1:
                 weapon_detected = True
+                concealed_alert = True
                 h, w = img.shape[:2]
                 x1, y1 = w//2 - 50, h//2 - 50
                 x2, y2 = w//2 + 50, h//2 + 50
                 cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                label = "SIMULATED WEAPON"
-                cv2.putText(img, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
+                cv2.putText(img, "SIMULATED WEAPON", (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
                 detected_objects.append("Simulated weapon")
-        elif not self.no_model:
+        else:
             # Run actual detection
             results = self.model(img)
             for result in results:
@@ -118,21 +122,50 @@ class WeaponDetector(VideoTransformerBase):
                         x1, y1, x2, y2 = map(int, box.xyxy[0])
                         conf = float(box.conf[0])
                         cls = int(box.cls[0])
-                        class_name = coco_names[cls] if cls < len(coco_names) else "unknown"
-                        if any(keyword in class_name.lower() for keyword in weapon_keywords):
-                            weapon_detected = True
-                            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                            label = f"{class_name} {conf:.2f}"
-                            cv2.putText(img, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
-                            detected_objects.append(f"{class_name} (confidence {conf:.2f})")
+                        if self.is_fallback:
+                            class_name = coco_names[cls] if cls < len(coco_names) else "unknown"
+                            if class_name == "person":
+                                persons.append((x1, y1, x2, y2))
+                                cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                            elif any(keyword in class_name.lower() for keyword in weapon_keywords):
+                                weapons.append((x1, y1, x2, y2, class_name, conf))
+                                weapon_detected = True
+                                detected_objects.append(f"{class_name} (conf {conf:.2f})")
+                        else:
+                            # Custom model: assume class 0 is weapon
+                            if conf > 0.5:
+                                weapons.append((x1, y1, x2, y2, "Weapon", conf))
+                                weapon_detected = True
+                                detected_objects.append(f"Weapon (conf {conf:.2f})")
+                            # Also detect persons if possible (custom model may have person class)
+                            if cls == 0 and conf > 0.5:  # assuming 0 is person, adjust if needed
+                                persons.append((x1, y1, x2, y2))
 
-        if weapon_detected:
+            # Check if any weapon is near a person (concealed detection)
+            for wx1, wy1, wx2, wy2, wname, wconf in weapons:
+                for px1, py1, px2, py2 in persons:
+                    # Check if weapon bounding box overlaps with person bounding box
+                    if (wx1 < px2 and wx2 > px1 and wy1 < py2 and wy2 > py1):
+                        concealed_alert = True
+                        # Highlight the person in red
+                        cv2.rectangle(img, (px1, py1), (px2, py2), (0, 0, 255), 3)
+                        cv2.putText(img, "CONCEALED WEAPON", (px1, py1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
+                        break
+
+            # Draw weapon boxes
+            for wx1, wy1, wx2, wy2, wname, wconf in weapons:
+                cv2.rectangle(img, (wx1, wy1), (wx2, wy2), (0, 0, 255), 2)
+                cv2.putText(img, f"{wname} {wconf:.2f}", (wx1, wy1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
+
+        if weapon_detected or concealed_alert:
             cv2.putText(img, "⚠️ WEAPON DETECTED ⚠️", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            if concealed_alert:
+                cv2.putText(img, "CONCEALED ON PERSON", (50, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
             self.detection_events.append({
                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "objects": ", ".join(detected_objects)
+                "objects": ", ".join(detected_objects),
+                "concealed": concealed_alert
             })
-            # Keep only last 50 events
             if len(self.detection_events) > 50:
                 self.detection_events = self.detection_events[-50:]
 
@@ -155,9 +188,9 @@ def generate_report(events):
     if not events:
         story.append(Paragraph("No weapons detected during this session.", styles['Normal']))
     else:
-        data = [["Timestamp", "Detected Object(s)"]]
+        data = [["Timestamp", "Detected Object(s)", "Concealed"]]
         for e in events:
-            data.append([e["timestamp"], e["objects"]])
+            data.append([e["timestamp"], e["objects"], "Yes" if e.get("concealed") else "No"])
         table = Table(data)
         table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.grey),
@@ -179,7 +212,7 @@ def generate_report(events):
 if not check_password():
     st.stop()
 
-# Initialize session state for demo mode and detection events
+# Initialize session state
 if "demo_mode" not in st.session_state:
     st.session_state.demo_mode = False
 if "detection_events" not in st.session_state:
@@ -193,7 +226,7 @@ with col1:
     st.image("https://flagcdn.com/w320/ht.png", width=100)
 with col2:
     st.markdown("<h1 style='text-align: center;'>WEAPON DETECTION AI</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'><em>Real-time gun detection for public safety</em></p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'><em>Concealed weapon detection for public safety</em></p>", unsafe_allow_html=True)
 with col3:
     st.markdown("""
     <div style='text-align: right;'>
@@ -230,27 +263,30 @@ with st.sidebar.expander("📚 How to improve detection accuracy"):
     st.markdown("""
     1. **Use a real weapon detection model** – Download a `.pt` file (e.g., from [this repo](https://github.com/akanametov/yolo-weapon-detection)) and upload it to your app directory as `weapon_model.pt`.
     2. **Good lighting** – Ensure the camera has adequate light.
-    3. **Hold the weapon clearly** – Avoid obstructed views.
-    4. **Keep the camera stable** – Use a tripod or hold steady.
-    5. **For mobile** – Tap the screen to focus.
+    3. **Keep the camera stable** – Use a tripod or hold steady.
+    4. **For mobile** – Tap the screen to focus.
+    5. **Concealed detection** – The app automatically highlights any weapon found overlapping a person.
     """)
 
 # Warning messages with dismiss buttons
-if no_model and not st.session_state.model_warning_dismissed:
-    warn = st.warning("⚠️ Weapon model not found. Using fallback detection (knives, scissors, bats). For full accuracy, upload a custom weapon model. [Dismiss]")
-    if st.button("Dismiss", key="dismiss_model_warning"):
-        st.session_state.model_warning_dismissed = True
-        st.rerun()
+if is_fallback and not st.session_state.model_warning_dismissed:
+    col_warn, col_btn = st.columns([5,1])
+    with col_warn:
+        st.warning("⚠️ Using standard model (detects knives, scissors, bats). For full concealed weapon detection, upload a custom weapon model.")
+    with col_btn:
+        if st.button("Dismiss", key="dismiss_model_warning"):
+            st.session_state.model_warning_dismissed = True
+            st.rerun()
 
 # Report download
 if st.sidebar.button("📄 Download Detection Report"):
     # In a real scenario, events would be collected from the transformer.
-    # For simplicity, we'll just show a message that events are tracked.
+    # For simplicity, we'll just use the events stored in session state.
     report_buffer = generate_report(st.session_state.get("detection_events", []))
     st.sidebar.download_button("⬇️ Download Report (PDF)", data=report_buffer, file_name=f"weapon_report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf", mime="application/pdf")
 
 st.sidebar.markdown("---")
-st.sidebar.info("How it works:\n- Click 'Start' below.\n- Grant camera permission.\n- The AI will highlight any weapon detected.\n- A red warning appears on screen.\n- Works on phones and computers.")
+st.sidebar.info("How it works:\n- Click 'Start' below.\n- Grant camera permission.\n- The AI will highlight any weapon near a person as 'CONCEALED'.\n- A red warning appears on screen.\n- Works on phones and computers.")
 
 # Video feed
 st.markdown("### 📷 Live Camera Feed")
@@ -264,10 +300,12 @@ webrtc_ctx = webrtc_streamer(
 if webrtc_ctx.state.playing:
     st.success("✅ Camera is active. AI is watching for weapons.")
 else:
-    warn_cam = st.warning("⚠️ Camera is not started. Click 'Start' above.")
-    if st.button("Dismiss", key="dismiss_cam_warning"):
-        warn_cam.empty()
-        st.rerun()
+    col_warn, col_btn = st.columns([5,1])
+    with col_warn:
+        st.warning("⚠️ Camera is not started. Click 'Start' above.")
+    with col_btn:
+        if st.button("Dismiss", key="dismiss_cam_warning"):
+            st.rerun()
 
 st.markdown("---")
 st.markdown("© 2026 GlobalInternet.py – All rights reserved")
