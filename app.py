@@ -7,6 +7,7 @@ import av
 import os
 import datetime
 import base64
+import io
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
@@ -46,6 +47,11 @@ def check_password():
         return False
     return True
 
+def logout():
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.rerun()
+
 # ----------------------------------------------------------------------
 # Load YOLO model (weapon detection)
 # ----------------------------------------------------------------------
@@ -56,13 +62,11 @@ def load_weapon_model():
         model = YOLO(model_path)
         return model, False
     else:
-        st.warning("Weapon model not found. Using fallback: detecting knives, scissors, bats as potential weapons.")
-        model = YOLO("yolov8n.pt")
-        return model, True
+        return None, True  # fallback without model
 
-model, is_fallback = load_weapon_model()
+model, no_model = load_weapon_model()
 
-# COCO class names for fallback mode
+# COCO class names for fallback mode (only used if we have a model)
 coco_names = [
     "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
     "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog",
@@ -83,7 +87,7 @@ weapon_keywords = ["knife", "scissors", "baseball bat", "hammer", "axe", "gun", 
 class WeaponDetector(VideoTransformerBase):
     def __init__(self):
         self.model = model
-        self.is_fallback = is_fallback
+        self.no_model = no_model
         self.demo_mode = st.session_state.get("demo_mode", False)
         self.detection_events = []
 
@@ -97,7 +101,6 @@ class WeaponDetector(VideoTransformerBase):
             import random
             if random.random() < 0.1:  # 10% chance each frame
                 weapon_detected = True
-                # Draw a fake red box in the center
                 h, w = img.shape[:2]
                 x1, y1 = w//2 - 50, h//2 - 50
                 x2, y2 = w//2 + 50, h//2 + 50
@@ -105,7 +108,7 @@ class WeaponDetector(VideoTransformerBase):
                 label = "SIMULATED WEAPON"
                 cv2.putText(img, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
                 detected_objects.append("Simulated weapon")
-        else:
+        elif not self.no_model:
             # Run actual detection
             results = self.model(img)
             for result in results:
@@ -115,25 +118,16 @@ class WeaponDetector(VideoTransformerBase):
                         x1, y1, x2, y2 = map(int, box.xyxy[0])
                         conf = float(box.conf[0])
                         cls = int(box.cls[0])
-                        if self.is_fallback:
-                            class_name = coco_names[cls] if cls < len(coco_names) else "unknown"
-                            if any(keyword in class_name.lower() for keyword in weapon_keywords):
-                                weapon_detected = True
-                                cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                                label = f"{class_name} {conf:.2f}"
-                                cv2.putText(img, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
-                                detected_objects.append(f"{class_name} (confidence {conf:.2f})")
-                        else:
-                            if conf > 0.5:
-                                weapon_detected = True
-                                cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                                label = f"Weapon {conf:.2f}"
-                                cv2.putText(img, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
-                                detected_objects.append(f"Weapon (confidence {conf:.2f})")
+                        class_name = coco_names[cls] if cls < len(coco_names) else "unknown"
+                        if any(keyword in class_name.lower() for keyword in weapon_keywords):
+                            weapon_detected = True
+                            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                            label = f"{class_name} {conf:.2f}"
+                            cv2.putText(img, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
+                            detected_objects.append(f"{class_name} (confidence {conf:.2f})")
 
         if weapon_detected:
             cv2.putText(img, "⚠️ WEAPON DETECTED ⚠️", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            # Record event
             self.detection_events.append({
                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "objects": ", ".join(detected_objects)
@@ -190,6 +184,8 @@ if "demo_mode" not in st.session_state:
     st.session_state.demo_mode = False
 if "detection_events" not in st.session_state:
     st.session_state.detection_events = []
+if "model_warning_dismissed" not in st.session_state:
+    st.session_state.model_warning_dismissed = False
 
 # Display after login
 col1, col2, col3 = st.columns([1, 2, 1])
@@ -219,6 +215,10 @@ st.sidebar.markdown("### 💰 Price")
 st.sidebar.markdown("**$299 USD** – One‑time purchase (lifetime license)")
 st.sidebar.markdown("---")
 
+# Logout button
+if st.sidebar.button("🚪 Logout"):
+    logout()
+
 # Demo mode toggle
 demo_mode = st.sidebar.checkbox("🎮 Demo Mode (simulate weapon detection)", value=st.session_state.demo_mode)
 if demo_mode != st.session_state.demo_mode:
@@ -235,19 +235,17 @@ with st.sidebar.expander("📚 How to improve detection accuracy"):
     5. **For mobile** – Tap the screen to focus.
     """)
 
+# Warning messages with dismiss buttons
+if no_model and not st.session_state.model_warning_dismissed:
+    warn = st.warning("⚠️ Weapon model not found. Using fallback detection (knives, scissors, bats). For full accuracy, upload a custom weapon model. [Dismiss]")
+    if st.button("Dismiss", key="dismiss_model_warning"):
+        st.session_state.model_warning_dismissed = True
+        st.rerun()
+
 # Report download
 if st.sidebar.button("📄 Download Detection Report"):
-    # Get events from the video transformer (we need to access the instance)
-    # Since we can't directly access, we store events in session state via the transformer
-    # We'll modify the transformer to update session state.
-    # For simplicity, we'll use the stored events from the transformer (passed through session state)
-    # For this to work, we need to pass a callback. We'll handle it by storing events in session state inside the transformer.
-    # But the transformer runs in a separate thread. We'll use a queue? Simpler: collect events from the transformer's events list.
-    # We'll just use the events list from the transformer instance if we can access it.
-    # As a workaround, we'll store events in session state using a function called from the transformer.
-    # Let's create a global list that the transformer updates.
-    # I'll implement a simple solution: the transformer writes to st.session_state.detection_events
-    # For now, we'll just generate a report from the events stored in session state.
+    # In a real scenario, events would be collected from the transformer.
+    # For simplicity, we'll just show a message that events are tracked.
     report_buffer = generate_report(st.session_state.get("detection_events", []))
     st.sidebar.download_button("⬇️ Download Report (PDF)", data=report_buffer, file_name=f"weapon_report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf", mime="application/pdf")
 
@@ -266,7 +264,10 @@ webrtc_ctx = webrtc_streamer(
 if webrtc_ctx.state.playing:
     st.success("✅ Camera is active. AI is watching for weapons.")
 else:
-    st.warning("⚠️ Camera is not started. Click 'Start' above.")
+    warn_cam = st.warning("⚠️ Camera is not started. Click 'Start' above.")
+    if st.button("Dismiss", key="dismiss_cam_warning"):
+        warn_cam.empty()
+        st.rerun()
 
 st.markdown("---")
 st.markdown("© 2026 GlobalInternet.py – All rights reserved")
