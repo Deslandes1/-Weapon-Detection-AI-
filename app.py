@@ -16,6 +16,123 @@ from reportlab.lib import colors
 st.set_page_config(page_title="Weapon Detection AI - GlobalInternet.py", layout="wide")
 
 # ----------------------------------------------------------------------
+# Multi-language dictionary
+# ----------------------------------------------------------------------
+lang_dict = {
+    "en": {
+        "app_title": "WEAPON DETECTION AI",
+        "app_subtitle": "Concealed weapon detection for public safety",
+        "login_title": "WEAPON DETECTION AI",
+        "login_sub": "Concealed weapon detection for public safety",
+        "password_placeholder": "🔐 Enter password to unlock",
+        "wrong_password": "Wrong password. Access denied.",
+        "logout": "🚪 Logout",
+        "price": "💰 Price",
+        "price_value": "$299 USD – One‑time purchase (lifetime license)",
+        "demo_mode": "🎮 Demo Mode (simulate weapon detection)",
+        "training_title": "📚 How to improve detection accuracy",
+        "training_text": """
+        1. **Use a real weapon detection model** – Download a `.pt` file (e.g., from [this repo](https://github.com/akanametov/yolo-weapon-detection)) and upload it to your app directory as `weapon_model.pt`.
+        2. **Good lighting** – Ensure the camera has adequate light.
+        3. **Keep the camera stable** – Use a tripod or hold steady.
+        4. **For mobile** – Tap the screen to focus.
+        5. **Concealed detection** – The app automatically highlights any weapon found overlapping a person.
+        """,
+        "download_report": "📄 Download Detection Report",
+        "report_filename": "weapon_report",
+        "how_it_works": "How it works:\n- Click 'Start' below.\n- Grant camera permission.\n- The AI will highlight any weapon near a person as 'CONCEALED'.\n- A red warning appears on screen.\n- Works on phones and computers.",
+        "camera_feed": "📷 Live Camera Feed",
+        "camera_active": "✅ Camera is active. AI is watching for weapons.",
+        "camera_inactive": "⚠️ Camera is not started. Click 'Start' above.",
+        "model_warning": "⚠️ Using standard model (detects knives, scissors, bats). For full concealed weapon detection, upload a custom weapon model.",
+        "dismiss": "Dismiss",
+        "weapon_detected": "⚠️ WEAPON DETECTED ⚠️",
+        "concealed_on_person": "CONCEALED ON PERSON",
+        "simulated_weapon": "SIMULATED WEAPON",
+        "report_title": "Weapon Detection Report",
+        "report_generated": "Generated",
+        "no_weapons": "No weapons detected during this session.",
+        "report_table_headers": ["Timestamp", "Detected Object(s)", "Concealed"],
+        "yes": "Yes",
+        "no": "No"
+    },
+    "fr": {
+        "app_title": "IA DE DÉTECTION D'ARMES",
+        "app_subtitle": "Détection d'armes dissimulées pour la sécurité publique",
+        "login_title": "IA DE DÉTECTION D'ARMES",
+        "login_sub": "Détection d'armes dissimulées pour la sécurité publique",
+        "password_placeholder": "🔐 Entrez le mot de passe pour déverrouiller",
+        "wrong_password": "Mot de passe incorrect. Accès refusé.",
+        "logout": "🚪 Déconnexion",
+        "price": "💰 Prix",
+        "price_value": "299 $ USD – Achat unique (licence à vie)",
+        "demo_mode": "🎮 Mode Démo (simuler la détection d'armes)",
+        "training_title": "📚 Comment améliorer la précision de détection",
+        "training_text": """
+        1. **Utilisez un vrai modèle de détection d'armes** – Téléchargez un fichier `.pt` (par exemple depuis [ce dépôt](https://github.com/akanametov/yolo-weapon-detection)) et placez-le dans le répertoire de l'application sous `weapon_model.pt`.
+        2. **Bon éclairage** – Assurez-vous que la caméra a une lumière suffisante.
+        3. **Gardez la caméra stable** – Utilisez un trépied ou tenez-la fermement.
+        4. **Sur mobile** – Tapotez l'écran pour faire le point.
+        5. **Détection dissimulée** – L'IA met automatiquement en évidence toute arme chevauchant une personne.
+        """,
+        "download_report": "📄 Télécharger le rapport de détection",
+        "report_filename": "rapport_armes",
+        "how_it_works": "Comment ça marche :\n- Cliquez sur 'Démarrer' ci-dessous.\n- Autorisez l'accès à la caméra.\n- L'IA mettra en évidence toute arme près d'une personne comme 'DISSIMULÉE'.\n- Un avertissement rouge apparaît à l'écran.\n- Fonctionne sur téléphones et ordinateurs.",
+        "camera_feed": "📷 Flux caméra en direct",
+        "camera_active": "✅ Caméra active. L'IA surveille les armes.",
+        "camera_inactive": "⚠️ Caméra non démarrée. Cliquez sur 'Démarrer' ci-dessus.",
+        "model_warning": "⚠️ Utilisation du modèle standard (détecte couteaux, ciseaux, battes). Pour une détection complète des armes dissimulées, téléchargez un modèle personnalisé.",
+        "dismiss": "Ignorer",
+        "weapon_detected": "⚠️ ARME DÉTECTÉE ⚠️",
+        "concealed_on_person": "DISSIMULÉE SUR UNE PERSONNE",
+        "simulated_weapon": "ARME SIMULÉE",
+        "report_title": "Rapport de détection d'armes",
+        "report_generated": "Généré le",
+        "no_weapons": "Aucune arme détectée pendant cette session.",
+        "report_table_headers": ["Horodatage", "Objet(s) détecté(s)", "Dissimulé"],
+        "yes": "Oui",
+        "no": "Non"
+    },
+    "es": {
+        "app_title": "IA DE DETECCIÓN DE ARMAS",
+        "app_subtitle": "Detección de armas ocultas para la seguridad pública",
+        "login_title": "IA DE DETECCIÓN DE ARMAS",
+        "login_sub": "Detección de armas ocultas para la seguridad pública",
+        "password_placeholder": "🔐 Ingrese la contraseña para desbloquear",
+        "wrong_password": "Contraseña incorrecta. Acceso denegado.",
+        "logout": "🚪 Cerrar sesión",
+        "price": "💰 Precio",
+        "price_value": "$299 USD – Compra única (licencia de por vida)",
+        "demo_mode": "🎮 Modo Demo (simular detección de armas)",
+        "training_title": "📚 Cómo mejorar la precisión de detección",
+        "training_text": """
+        1. **Utilice un modelo real de detección de armas** – Descargue un archivo `.pt` (por ejemplo, desde [este repositorio](https://github.com/akanametov/yolo-weapon-detection)) y colóquelo en el directorio de la aplicación como `weapon_model.pt`.
+        2. **Buena iluminación** – Asegúrese de que la cámara tenga suficiente luz.
+        3. **Mantenga la cámara estable** – Use un trípode o sosténgala firmemente.
+        4. **En móvil** – Toque la pantalla para enfocar.
+        5. **Detección oculta** – La IA resalta automáticamente cualquier arma que se superponga a una persona.
+        """,
+        "download_report": "📄 Descargar informe de detección",
+        "report_filename": "informe_armas",
+        "how_it_works": "Cómo funciona:\n- Haga clic en 'Iniciar' abajo.\n- Conceda permiso de cámara.\n- La IA resaltará cualquier arma cerca de una persona como 'OCULTA'.\n- Aparece una advertencia roja en la pantalla.\n- Funciona en teléfonos y computadoras.",
+        "camera_feed": "📷 Transmisión de cámara en vivo",
+        "camera_active": "✅ Cámara activa. La IA está vigilando armas.",
+        "camera_inactive": "⚠️ Cámara no iniciada. Haga clic en 'Iniciar' arriba.",
+        "model_warning": "⚠️ Usando modelo estándar (detecta cuchillos, tijeras, bates). Para una detección completa de armas ocultas, cargue un modelo personalizado.",
+        "dismiss": "Descartar",
+        "weapon_detected": "⚠️ ARMA DETECTADA ⚠️",
+        "concealed_on_person": "OCULTA EN UNA PERSONA",
+        "simulated_weapon": "ARMA SIMULADA",
+        "report_title": "Informe de detección de armas",
+        "report_generated": "Generado el",
+        "no_weapons": "No se detectaron armas durante esta sesión.",
+        "report_table_headers": ["Marca de tiempo", "Objeto(s) detectado(s)", "Oculta"],
+        "yes": "Sí",
+        "no": "No"
+    }
+}
+
+# ----------------------------------------------------------------------
 # Authentication
 # ----------------------------------------------------------------------
 def check_password():
@@ -27,8 +144,8 @@ def check_password():
         with col1:
             st.image("https://flagcdn.com/w320/ht.png", width=100)
         with col2:
-            st.markdown("<h1 style='text-align: center;'>WEAPON DETECTION AI</h1>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center;'><em>Concealed weapon detection for public safety</em></p>", unsafe_allow_html=True)
+            st.markdown(f"<h1 style='text-align: center;'>{lang_dict[st.session_state.get('lang', 'en')]['login_title']}</h1>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: center;'><em>{lang_dict[st.session_state.get('lang', 'en')]['login_sub']}</em></p>", unsafe_allow_html=True)
         with col3:
             st.markdown("""
             <div style='text-align: right;'>
@@ -38,12 +155,12 @@ def check_password():
             </div>
             """, unsafe_allow_html=True)
         st.divider()
-        pwd = st.text_input("🔐 Enter password to unlock", type="password")
+        pwd = st.text_input(lang_dict[st.session_state.get('lang', 'en')]['password_placeholder'], type="password")
         if pwd == "20082010":
             st.session_state.authenticated = True
             st.rerun()
         elif pwd:
-            st.error("Wrong password. Access denied.")
+            st.error(lang_dict[st.session_state.get('lang', 'en')]['wrong_password'])
         return False
     return True
 
@@ -62,7 +179,6 @@ def load_weapon_model():
         model = YOLO(model_path)
         return model, False
     else:
-        # Fallback: use standard YOLOv8 for person detection and weapon-like objects
         model = YOLO("yolov8n.pt")
         return model, True
 
@@ -102,7 +218,6 @@ class WeaponDetector(VideoTransformerBase):
         weapons = []
 
         if self.demo_mode:
-            # Simulate weapon detection randomly for demo
             if random.random() < 0.1:
                 weapon_detected = True
                 concealed_alert = True
@@ -110,10 +225,9 @@ class WeaponDetector(VideoTransformerBase):
                 x1, y1 = w//2 - 50, h//2 - 50
                 x2, y2 = w//2 + 50, h//2 + 50
                 cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                cv2.putText(img, "SIMULATED WEAPON", (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
+                cv2.putText(img, lang_dict[st.session_state.get('lang', 'en')]['simulated_weapon'], (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
                 detected_objects.append("Simulated weapon")
         else:
-            # Run actual detection
             results = self.model(img)
             for result in results:
                 boxes = result.boxes
@@ -132,35 +246,29 @@ class WeaponDetector(VideoTransformerBase):
                                 weapon_detected = True
                                 detected_objects.append(f"{class_name} (conf {conf:.2f})")
                         else:
-                            # Custom model: assume class 0 is weapon
                             if conf > 0.5:
                                 weapons.append((x1, y1, x2, y2, "Weapon", conf))
                                 weapon_detected = True
                                 detected_objects.append(f"Weapon (conf {conf:.2f})")
-                            # Also detect persons if possible (custom model may have person class)
-                            if cls == 0 and conf > 0.5:  # assuming 0 is person, adjust if needed
+                            if cls == 0 and conf > 0.5:
                                 persons.append((x1, y1, x2, y2))
 
-            # Check if any weapon is near a person (concealed detection)
             for wx1, wy1, wx2, wy2, wname, wconf in weapons:
                 for px1, py1, px2, py2 in persons:
-                    # Check if weapon bounding box overlaps with person bounding box
                     if (wx1 < px2 and wx2 > px1 and wy1 < py2 and wy2 > py1):
                         concealed_alert = True
-                        # Highlight the person in red
                         cv2.rectangle(img, (px1, py1), (px2, py2), (0, 0, 255), 3)
-                        cv2.putText(img, "CONCEALED WEAPON", (px1, py1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
+                        cv2.putText(img, lang_dict[st.session_state.get('lang', 'en')]['concealed_on_person'], (px1, py1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
                         break
 
-            # Draw weapon boxes
             for wx1, wy1, wx2, wy2, wname, wconf in weapons:
                 cv2.rectangle(img, (wx1, wy1), (wx2, wy2), (0, 0, 255), 2)
                 cv2.putText(img, f"{wname} {wconf:.2f}", (wx1, wy1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
 
         if weapon_detected or concealed_alert:
-            cv2.putText(img, "⚠️ WEAPON DETECTED ⚠️", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            cv2.putText(img, lang_dict[st.session_state.get('lang', 'en')]['weapon_detected'], (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             if concealed_alert:
-                cv2.putText(img, "CONCEALED ON PERSON", (50, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                cv2.putText(img, lang_dict[st.session_state.get('lang', 'en')]['concealed_on_person'], (50, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
             self.detection_events.append({
                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "objects": ", ".join(detected_objects),
@@ -172,25 +280,26 @@ class WeaponDetector(VideoTransformerBase):
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 # ----------------------------------------------------------------------
-# Generate PDF report
+# Generate PDF report in selected language
 # ----------------------------------------------------------------------
-def generate_report(events):
+def generate_report(events, lang):
+    t = lang_dict[lang]
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     styles = getSampleStyleSheet()
     story = []
 
-    story.append(Paragraph("Weapon Detection Report", styles['Title']))
+    story.append(Paragraph(t['report_title'], styles['Title']))
     story.append(Spacer(1, 12))
-    story.append(Paragraph(f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+    story.append(Paragraph(f"{t['report_generated']}: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
     story.append(Spacer(1, 12))
 
     if not events:
-        story.append(Paragraph("No weapons detected during this session.", styles['Normal']))
+        story.append(Paragraph(t['no_weapons'], styles['Normal']))
     else:
-        data = [["Timestamp", "Detected Object(s)", "Concealed"]]
+        data = [t['report_table_headers']]
         for e in events:
-            data.append([e["timestamp"], e["objects"], "Yes" if e.get("concealed") else "No"])
+            data.append([e["timestamp"], e["objects"], t['yes'] if e.get("concealed") else t['no']])
         table = Table(data)
         table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.grey),
@@ -212,6 +321,17 @@ def generate_report(events):
 if not check_password():
     st.stop()
 
+# Language selection (after login)
+if "lang" not in st.session_state:
+    st.session_state.lang = "en"
+lang_options = {"en": "🇺🇸 English", "fr": "🇫🇷 Français", "es": "🇪🇸 Español"}
+selected_lang = st.sidebar.selectbox("🌐 Language", options=list(lang_options.keys()), format_func=lambda x: lang_options[x], index=list(lang_options.keys()).index(st.session_state.lang))
+if selected_lang != st.session_state.lang:
+    st.session_state.lang = selected_lang
+    st.rerun()
+lang = st.session_state.lang
+t = lang_dict[lang]
+
 # Initialize session state
 if "demo_mode" not in st.session_state:
     st.session_state.demo_mode = False
@@ -225,8 +345,8 @@ col1, col2, col3 = st.columns([1, 2, 1])
 with col1:
     st.image("https://flagcdn.com/w320/ht.png", width=100)
 with col2:
-    st.markdown("<h1 style='text-align: center;'>WEAPON DETECTION AI</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'><em>Concealed weapon detection for public safety</em></p>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align: center;'>{t['app_title']}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center;'><em>{t['app_subtitle']}</em></p>", unsafe_allow_html=True)
 with col3:
     st.markdown("""
     <div style='text-align: right;'>
@@ -239,57 +359,35 @@ st.divider()
 
 # Sidebar
 st.sidebar.image("https://flagcdn.com/w320/ht.png", width=100)
-st.sidebar.title("Weapon Detection AI")
+st.sidebar.title(t['app_title'])
 st.sidebar.markdown("**GlobalInternet.py**")
 st.sidebar.markdown("Owner: Gesner Deslandes")
 st.sidebar.markdown("📧 deslndes78@gmail.com | 📞 (509) 4738-5663")
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 💰 Price")
-st.sidebar.markdown("**$299 USD** – One‑time purchase (lifetime license)")
+st.sidebar.markdown(f"### {t['price']}")
+st.sidebar.markdown(f"**{t['price_value']}**")
 st.sidebar.markdown("---")
 
-# Logout button
-if st.sidebar.button("🚪 Logout"):
+if st.sidebar.button(t['logout']):
     logout()
 
-# Demo mode toggle
-demo_mode = st.sidebar.checkbox("🎮 Demo Mode (simulate weapon detection)", value=st.session_state.demo_mode)
+demo_mode = st.sidebar.checkbox(t['demo_mode'], value=st.session_state.demo_mode)
 if demo_mode != st.session_state.demo_mode:
     st.session_state.demo_mode = demo_mode
     st.rerun()
 
-# Training instructions
-with st.sidebar.expander("📚 How to improve detection accuracy"):
-    st.markdown("""
-    1. **Use a real weapon detection model** – Download a `.pt` file (e.g., from [this repo](https://github.com/akanametov/yolo-weapon-detection)) and upload it to your app directory as `weapon_model.pt`.
-    2. **Good lighting** – Ensure the camera has adequate light.
-    3. **Keep the camera stable** – Use a tripod or hold steady.
-    4. **For mobile** – Tap the screen to focus.
-    5. **Concealed detection** – The app automatically highlights any weapon found overlapping a person.
-    """)
+with st.sidebar.expander(t['training_title']):
+    st.markdown(t['training_text'])
 
-# Warning messages with dismiss buttons
-if is_fallback and not st.session_state.model_warning_dismissed:
-    col_warn, col_btn = st.columns([5,1])
-    with col_warn:
-        st.warning("⚠️ Using standard model (detects knives, scissors, bats). For full concealed weapon detection, upload a custom weapon model.")
-    with col_btn:
-        if st.button("Dismiss", key="dismiss_model_warning"):
-            st.session_state.model_warning_dismissed = True
-            st.rerun()
-
-# Report download
-if st.sidebar.button("📄 Download Detection Report"):
-    # In a real scenario, events would be collected from the transformer.
-    # For simplicity, we'll just use the events stored in session state.
-    report_buffer = generate_report(st.session_state.get("detection_events", []))
-    st.sidebar.download_button("⬇️ Download Report (PDF)", data=report_buffer, file_name=f"weapon_report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf", mime="application/pdf")
+if st.sidebar.button(t['download_report']):
+    report_buffer = generate_report(st.session_state.get("detection_events", []), lang)
+    st.sidebar.download_button("⬇️ PDF", data=report_buffer, file_name=f"{t['report_filename']}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf", mime="application/pdf")
 
 st.sidebar.markdown("---")
-st.sidebar.info("How it works:\n- Click 'Start' below.\n- Grant camera permission.\n- The AI will highlight any weapon near a person as 'CONCEALED'.\n- A red warning appears on screen.\n- Works on phones and computers.")
+st.sidebar.info(t['how_it_works'])
 
 # Video feed
-st.markdown("### 📷 Live Camera Feed")
+st.markdown(f"### {t['camera_feed']}")
 webrtc_ctx = webrtc_streamer(
     key="weapon-detection",
     video_transformer_factory=WeaponDetector,
@@ -298,13 +396,22 @@ webrtc_ctx = webrtc_streamer(
 )
 
 if webrtc_ctx.state.playing:
-    st.success("✅ Camera is active. AI is watching for weapons.")
+    st.success(t['camera_active'])
 else:
     col_warn, col_btn = st.columns([5,1])
     with col_warn:
-        st.warning("⚠️ Camera is not started. Click 'Start' above.")
+        st.warning(t['camera_inactive'])
     with col_btn:
-        if st.button("Dismiss", key="dismiss_cam_warning"):
+        if st.button(t['dismiss'], key="dismiss_cam_warning"):
+            st.rerun()
+
+if is_fallback and not st.session_state.model_warning_dismissed:
+    col_warn, col_btn = st.columns([5,1])
+    with col_warn:
+        st.warning(t['model_warning'])
+    with col_btn:
+        if st.button(t['dismiss'], key="dismiss_model_warning"):
+            st.session_state.model_warning_dismissed = True
             st.rerun()
 
 st.markdown("---")
