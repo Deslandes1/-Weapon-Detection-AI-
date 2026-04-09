@@ -1,8 +1,8 @@
-streamlit
-opencv-python-headless
-ultralytics
-streamlit-webrtc
-av
-reportlab
-Pillow
-numpy
+streamlit==1.28.0
+opencv-python-headless==4.8.1.78
+ultralytics==8.0.207
+streamlit-webrtc==0.45.1
+av==10.0.0
+reportlab==4.0.4
+Pillow==10.0.1
+numpy==1.24.3
